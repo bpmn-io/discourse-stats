@@ -93,15 +93,7 @@ function fetchMonthlyStats(reportName, start_date) {
   });
 }
 
-async function fetchStats(name, months = 1) {
-
-  const today = new Date();
-
-  const day = today.getUTCDate();
-  const month = today.getUTCMonth() + 1;
-  const year = today.getUTCFullYear();
-
-  const start_date = `${year}-${padZero(month, 2)}-${padZero(day, 2)}T00:00:00.000Z`;
+async function fetchStats(name, start_date, months = 1) {
 
   let lastReport = await fetchMonthlyStats(name, start_date);
 
@@ -169,11 +161,19 @@ function toCSV(report) {
   console.log(`wrote ${name}.csv`);
 }
 
-const months = 10;
+const look_back = 10;
+
+const today = new Date();
+
+const day = today.getUTCDate();
+const month = today.getUTCMonth() + 1;
+const year = today.getUTCFullYear();
+
+const start_date = `${year}-${padZero(month, 2)}-${padZero(day, 2)}T00:00:00.000Z`;
 
 Promise.all([
-  fetchStats('posts', months).then(toCSV),
-  fetchStats('signups', months).then(toCSV)
+  fetchStats('posts', start_date, look_back).then(toCSV),
+  fetchStats('signups', start_date, look_back).then(toCSV)
 ]).catch(err => {
   console.error(err);
 
