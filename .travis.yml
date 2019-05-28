@@ -1,0 +1,16 @@
+jobs:
+  include:
+    - stage: test
+      script:
+      - echo "no tests"
+    - stage: "nightly"
+      language: node_js
+      node_js:
+        - node
+      script:
+      - if [[ "$(date -u +%d)" = "28" ]]; then npm start; fi
+
+stages:
+  - test
+  - name: "nightly"
+    if: type IN (cron)
