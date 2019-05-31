@@ -5,7 +5,7 @@
 
 ## Configure
 
-Provide the [required environment variables](./env.example) either directly or via a `.env` file.
+Provide the [required environment variables](./.env.example) either directly or via a `.env` file.
 
 
 ## Run
