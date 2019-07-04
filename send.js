@@ -56,7 +56,7 @@ const message = {
   to: EMAIL_TO,
   replyTo: EMAIL_REPLY_TO,
   subject: `[Forum Statistics] Monthly stats for ${DISCOURSE_BASE_URL}`,
-  text: `Find the last month usage stats for ${DISCOURSE_BASE_URL} attached`,
+  text: `Find the last months usage stats for ${DISCOURSE_BASE_URL} attached`,
   attachments: csvs.map(path => {
     return {
       filename: path,
