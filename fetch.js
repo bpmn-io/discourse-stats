@@ -1,5 +1,9 @@
 const _fetch = require('node-fetch');
 
+const {
+  DateTime
+} = require('luxon');
+
 function getEnv(...names) {
 
   const result = {};
@@ -55,11 +59,12 @@ function rateLimit(asyncFn, delay=300) {
 const fetch = rateLimit(_fetch);
 
 
-function fetchMonthlyStats(reportName, start_date) {
+function fetchMonthlyStats(reportName, start_date, end_date) {
 
   var params = new URLSearchParams([
     [`reports[${reportName}][facets][]`, 'prev_period'],
     [`reports[${reportName}][start_date]`, start_date],
+    [`reports[${reportName}][end_date]`, end_date],
     [`reports[${reportName}][limit]`, '50'],
     ['api_key', DISCOURSE_KEY],
     ['api_username', DISCOURSE_USERNAME]
@@ -93,31 +98,34 @@ function fetchMonthlyStats(reportName, start_date) {
   });
 }
 
-async function fetchStats(name, start_date, months = 1) {
-
-  let lastReport = await fetchMonthlyStats(name, start_date);
+async function fetchStats(name, ranges) {
 
   let reports = [];
 
-  while (months-- > 0) {
-    lastReport = await fetchMonthlyStats(name, lastReport.prev_start_date);
+  for (const range of ranges) {
 
     const {
       start_date,
-      data
-    } = lastReport;
+      end_date
+    } = range;
 
-    const [ _0, month, _1, year ] = new Date(start_date).toDateString().split(' ');
+    const report = await fetchMonthlyStats(name, start_date, end_date);
+
+    const {
+      data
+    } = report;
+
+    const [ _0, month, _1, year ] = new Date(end_date).toDateString().split(' ');
 
     const sum = data.reduce(function(sum, entry) {
       return sum + entry.y;
     }, 0);
 
-    lastReport.month = month;
-    lastReport.sum = sum;
-    lastReport.year = year;
+    report.month = month;
+    report.sum = sum;
+    report.year = year;
 
-    reports.push(lastReport);
+    reports.push(report);
   }
 
   const data = reports.map(report => {
@@ -161,19 +169,37 @@ function toCSV(report) {
   console.log(`wrote ${name}.csv`);
 }
 
-const look_back = 10;
+function createRanges(date, look_back = 1) {
 
+  const ranges = [];
+
+  for (let i = 0; i < look_back; i++) {
+
+    var end_date = DateTime.local().minus({
+      month: i + 1
+    }).endOf('month').toISO();
+
+    var start_date = DateTime.local().minus({
+      month: i + 1
+    }).startOf('month').toISO();
+
+    ranges.push({
+      start_date,
+      end_date
+    });
+  }
+
+  return ranges;
+}
+
+const look_back = 10;
 const today = new Date();
 
-const day = today.getUTCDate();
-const month = today.getUTCMonth() + 1;
-const year = today.getUTCFullYear();
-
-const start_date = `${year}-${padZero(month, 2)}-${padZero(day, 2)}T00:00:00.000Z`;
+const ranges = createRanges(today, look_back);
 
 Promise.all([
-  fetchStats('posts', start_date, look_back).then(toCSV),
-  fetchStats('signups', start_date, look_back).then(toCSV)
+  fetchStats('posts', ranges).then(toCSV),
+  fetchStats('signups', ranges).then(toCSV)
 ]).catch(err => {
   console.error(err);
 
